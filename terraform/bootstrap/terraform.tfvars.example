@@ -1,0 +1,10 @@
+# Copy to terraform.tfvars and set a globally-unique bucket name.
+#   Copy-Item terraform.tfvars.example terraform.tfvars   (PowerShell)
+
+# S3 bucket names are GLOBALLY unique across all AWS accounts. Add your initials,
+# account id, or a random suffix to avoid collisions.
+state_bucket_name = "ai-infra-tfstate-CHANGEME-12345"
+
+# Optional overrides:
+# region          = "us-east-1"
+# lock_table_name = "ai-infra-tf-locks"

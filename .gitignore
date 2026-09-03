@@ -1,0 +1,46 @@
+# ---- Terraform ----
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+backend.hcl
+!backend.hcl.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+# ---- SSH keys / secrets ----
+*.pem
+*.key
+*.pub
+id_rsa*
+credentials
+.env
+.env.*
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- Benchmark results (keep committed ones out of accidental churn) ----
+results/*.json
+results/*.png
+!results/.gitkeep
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

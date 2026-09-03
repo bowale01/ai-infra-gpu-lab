@@ -1,0 +1,23 @@
+# Copy this file to terraform.tfvars and adjust as needed.
+#   Copy-Item terraform.tfvars.example terraform.tfvars   (PowerShell)
+#
+# Access is via AWS SSM Session Manager — no SSH key or IP allow-listing required.
+# terraform.tfvars is gitignored.
+
+# ---- CPU dry-run (cheap, no special quota) ----
+# Proves the whole provision -> SSM -> benchmark -> destroy pipeline for pennies.
+instance_type         = "t3.medium"
+use_deep_learning_ami = false
+root_volume_size      = 30
+
+# ---- GPU run (after the G/VT vCPU quota is approved) ----
+# Swap the three values above for these:
+# instance_type         = "g4dn.xlarge"   # NVIDIA T4
+# use_deep_learning_ami = true
+# root_volume_size      = 120
+
+# Safety net: auto power-off after N hours so a forgotten instance stops billing.
+# Set to 0 to disable.
+auto_shutdown_hours = 4
+
+# region = "us-east-1"

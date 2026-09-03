@@ -1,0 +1,9 @@
+# Shell scripts must use LF endings so they run on the Linux instance.
+*.sh text eol=lf
+
+# Keep other text files consistent.
+*.tf   text
+*.py   text
+*.md   text
+*.hcl  text
+*.ipynb text

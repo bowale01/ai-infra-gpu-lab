@@ -1,0 +1,11 @@
+# Copy this to backend.hcl and fill in the values printed by the bootstrap config.
+#   Copy-Item backend.hcl.example backend.hcl   (PowerShell)
+#
+# Then initialize the backend:
+#   terraform init -backend-config=backend.hcl
+#
+# backend.hcl is gitignored so your unique bucket name stays private.
+
+bucket         = "ai-infra-tfstate-CHANGEME-12345"
+region         = "us-east-1"
+dynamodb_table = "ai-infra-tf-locks"
