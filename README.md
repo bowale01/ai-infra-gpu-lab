@@ -126,6 +126,65 @@ reported on `apply`, in the region where the GPU quota was approved. Same box, e
 > The `PUT`-then-`GET` token flow is **IMDSv2**, the secure, current way to read instance
 > metadata.
 
+### Screenshots from the AWS console
+
+Visual evidence of the live infrastructure (all in `us-east-1`, N. Virginia).
+
+**The GPU instance running** — `g4dn.xlarge`, 3/3 status checks, instance `i-0d1866b0927232d54`:
+
+![GPU EC2 instance running](docs/screenshots/Gpu%20ec2%20instance.jpg)
+
+**Live terminal (via SSM)** — `nvidia-smi` showing the Tesla T4, the PyTorch CUDA check, and the instance identity, all in one session with no SSH:
+
+![nvidia-smi and PyTorch CUDA in the SSM session](docs/screenshots/Gpu%20screenshot%201%20command.jpg)
+
+**Benchmark results running on the instance:**
+
+![Benchmark output](docs/screenshots/benched%20market%20result.jpg)
+
+**Security group with zero inbound rules** — access is SSM-only, no attack surface:
+
+![Security group, no inbound rules](docs/screenshots/Security%20group%20with%20no%20inbound%20rules.jpg)
+
+**SSM connection** — reaching the box through Session Manager:
+
+![SSM connection](docs/screenshots/connection%20using%20ssm.jpg)
+
+**IAM role attached to the instance** — least-privilege SSM access:
+
+![SSM instance role](docs/screenshots/SSM%20instance%20attached%20role.jpg)
+
+**Deep Learning GPU AMI** used for the instance:
+
+![Deep Learning GPU AMI](docs/screenshots/Deep%20Learning%20GPU%20ami.jpg)
+
+**Remote Terraform state in S3** and the **DynamoDB lock table**:
+
+![S3 state bucket](docs/screenshots/s3%20bucket.jpg)
+
+![Terraform state file](docs/screenshots/tfstate.jpg)
+
+![DynamoDB lock table](docs/screenshots/dybnamo%20db%20table.jpg)
+
+**GPU vCPU service quota** (the approved limit that made this possible):
+
+![Service quota](docs/screenshots/service%20quota.jpg)
+
+<details>
+<summary>More console views (instance details, networking, storage, monitoring, tags)</summary>
+
+![GPU details](docs/screenshots/detailed%20of%20the%20GPU.jpg)
+![Second terminal view](docs/screenshots/screenshot%202.jpg)
+![IAM](docs/screenshots/iam.jpg)
+![Security group](docs/screenshots/security%20group.jpg)
+![Networking](docs/screenshots/network.jpg)
+![Storage](docs/screenshots/storage.jpg)
+![Monitoring](docs/screenshots/monitoring.jpg)
+![Status and alarms](docs/screenshots/status%20and%20alarm.jpg)
+![Tags](docs/screenshots/tag.jpg)
+
+</details>
+
 ---
 
 ## What exactly are we doing here?
