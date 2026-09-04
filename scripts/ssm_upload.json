@@ -1,0 +1,8 @@
+{
+  "comment": "Run on the instance via SSM to ferry benchmark results to S3. Replace <STATE_BUCKET> with your state bucket name (kept out of the repo).",
+  "commands": [
+    "cd /home/ubuntu/ai-infra-gpu-lab/results",
+    "for f in matmul.png cnn_training.png speedup.png matmul.json cnn_training.json; do aws s3 cp \"$f\" \"s3://<STATE_BUCKET>/benchmark-results/$f\" --region us-east-1; done",
+    "echo done"
+  ]
+}

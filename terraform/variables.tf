@@ -38,3 +38,9 @@ variable "project_name" {
   type        = string
   default     = "ai-infra-gpu-benchmark"
 }
+
+variable "results_bucket" {
+  description = "S3 bucket the instance may upload benchmark results to (for transfer off the box). Empty string disables the upload policy."
+  type        = string
+  default     = ""
+}

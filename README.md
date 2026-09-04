@@ -24,6 +24,110 @@ charts you can publish. Built as a portfolio piece for AI Infrastructure / GPU /
 
 ---
 
+## Why I built this
+
+I'm moving into **AI infrastructure, GPU, and HPC** work, and I wanted a project that
+proves the full loop an infra engineer owns end-to-end — not a notebook with borrowed
+numbers, but a real GPU server I provisioned, secured, benchmarked, and tore down myself.
+
+This project demonstrates, on live AWS infrastructure:
+
+- **Provisioning GPU compute as code** with Terraform (reproducible, disposable).
+- **Production-grade access and state:** SSM-only access (no SSH, no open ports), an IAM
+  role for least-privilege, and remote Terraform state in S3 with DynamoDB locking.
+- **Real measurement:** actual CPU-vs-GPU benchmarks on an NVIDIA Tesla T4, showing where
+  a GPU wins (and where it doesn't).
+- **Cost discipline:** the accelerator runs for minutes, is auto-shutdown-protected, and
+  is destroyed the moment the work is done.
+
+The benchmark is the hook; the infrastructure around it is the point.
+
+## Proof it ran on real GPU hardware
+
+All three commands below were run **live on the provisioned instance**, reached entirely
+through **AWS SSM Session Manager — no SSH, no open ports**. Each is shown with what it
+does and what its output proves.
+
+### 1. `nvidia-smi` — is there a real GPU, and what is it?
+
+`nvidia-smi` is NVIDIA's driver tool. It talks to the physical GPU and reports the model,
+driver/CUDA version, temperature, power, and memory. If there were no GPU (or drivers
+weren't working), this command would fail. It's the standard first check on any GPU box.
+
+```text
+Fri Sep  4 22:57:04 2026
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 595.91.07              Driver Version: 595.91.07      CUDA Version: 13.2      |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+|=========================================+========================+======================|
+|   0  Tesla T4                       On  |   00000000:00:1E.0 Off |                    0 |
+| N/A   41C    P0             33W /   70W |       0MiB /  15360MiB |      0%      Default |
++-----------------------------------------+------------------------+----------------------+
+```
+
+**What it proves:** a real **NVIDIA Tesla T4** with **15,360 MiB (16 GB)** of GPU memory is
+attached, drivers are healthy (v595.91.07, CUDA 13.2), idle at 33 W / 41 °C — a genuine,
+working GPU, not an emulator or a CPU pretending.
+
+### 2. PyTorch CUDA check — can the ML framework actually use the GPU?
+
+A GPU being present isn't enough; the ML framework has to be able to talk to it. This runs
+Python (from the Deep Learning AMI's PyTorch venv) and asks PyTorch directly whether CUDA
+is available and which device it sees.
+
+```bash
+/opt/pytorch/bin/python -c "import torch; \
+  print('torch', torch.__version__); \
+  print('cuda available:', torch.cuda.is_available()); \
+  print('device:', torch.cuda.get_device_name(0)); \
+  print('capability:', torch.cuda.get_device_capability(0))"
+```
+
+```text
+torch 2.13.0+cu130
+cuda available: True
+device: Tesla T4
+capability: (7, 5)
+```
+
+**What it proves:** PyTorch **2.13 built against CUDA 13.0** sees the GPU
+(`cuda available: True`) and identifies it as a **Tesla T4** with compute capability
+**7.5**. This is the link between hardware and benchmarks — the code really runs on the
+GPU, not silently falling back to CPU.
+
+### 3. Instance identity from inside the box — is this the instance I provisioned?
+
+This queries the EC2 **Instance Metadata Service** (a link-local address only reachable
+from inside the instance) to read the machine's own ID, type, and location. It ties the
+session back to the exact resource Terraform created and to the AWS console.
+
+```bash
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-id
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/instance-type
+curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/placement/availability-zone
+```
+
+```text
+instance-id:   i-0d1866b0927232d54
+instance-type: g4dn.xlarge
+region/az:     us-east-1f
+```
+
+**What it proves:** the session is on instance **`i-0d1866b0927232d54`**, type
+**`g4dn.xlarge`**, in **`us-east-1`** (Northern Virginia) — the exact instance ID Terraform
+reported on `apply`, in the region where the GPU quota was approved. Same box, end to end.
+
+> The `PUT`-then-`GET` token flow is **IMDSv2**, the secure, current way to read instance
+> metadata.
+
+---
+
 ## What exactly are we doing here?
 
 **In one sentence:** we use Terraform to stand up a real GPU server on AWS, run the same
@@ -291,8 +395,8 @@ benchmarks finish in minutes, so a full session is realistically **under ~$1**. 
 Two layers of protection against surprise bills:
 
 1. `terraform destroy` removes everything when you're done.
-2. `auto_shutdown_hours` (default 4) tells the instance to power itself off after N hours,
-   so even a forgotten box stops the compute charge on its own.
+2. `auto_shutdown_hours` tells the instance to power itself off after N hours, so even a
+   forgotten box stops the compute charge on its own (this run used 1 hour).
 
 An idle GPU left running is ~$12.60/day — the whole point of doing this as code is that
 "off" is as easy as "on." You can switch instance types via `instance_type` (e.g.
@@ -300,10 +404,112 @@ An idle GPU left running is ~$12.60/day — the whole point of doing this as cod
 
 ---
 
-## Results
+## Results (real numbers from a live run)
 
-See [`docs/writeup.md`](docs/writeup.md) for the full narrative and analysis. Charts land
-in [`results/`](results/) after you run `plot_results.py`.
+These are actual measurements from a live `g4dn.xlarge` (**NVIDIA Tesla T4**) in
+`us-east-1`, running **PyTorch 2.13 + CUDA**, provisioned and benchmarked exactly as
+described above.
+
+### Matrix multiply — CPU vs GPU (Tesla T4)
+
+| Matrix size | CPU | GPU (T4) | GPU speedup |
+|---|---|---|---|
+| 256 × 256   | 198 GFLOP/s  | 933 GFLOP/s   | ~5× |
+| 512 × 512   | 240 GFLOP/s  | 4,566 GFLOP/s | ~19× |
+| 1024 × 1024 | 267 GFLOP/s  | 5,963 GFLOP/s | ~22× |
+| 2048 × 2048 | 272 GFLOP/s  | 6,020 GFLOP/s | ~22× |
+| 4096 × 4096 | 260 GFLOP/s  | 4,137 GFLOP/s | ~16× |
+
+![Matrix multiply: CPU vs GPU](results/matmul.png)
+
+### CNN training — CPU vs GPU (Tesla T4)
+
+| Device | Throughput | Per step |
+|---|---|---|
+| CPU | 440 images/sec | 145.3 ms |
+| GPU (T4) | **10,959 images/sec** | 5.8 ms |
+
+**~25× faster on the GPU.**
+
+![CNN training throughput](results/cnn_training.png)
+
+![GPU speedup summary](results/speedup.png)
+
+### What the numbers show
+
+- **Small matrices (256):** the GPU lead is modest (~5×). There isn't enough parallel work
+  to fill the T4's cores, so launch/transfer overhead dominates — exactly the case where a
+  GPU can be wasted money.
+- **Large matrices (1024–2048):** the T4 pulls far ahead (~22×), sustaining ~6 TFLOP/s
+  while the CPU sits flat around 0.27 TFLOP/s. This is the "big parallel work" sweet spot.
+- **CNN training (~25×):** the biggest gap, because convolutions are dense and highly
+  parallel — the workload GPUs are built for.
+
+The takeaway for infra: a GPU pays off when the workload is big and parallel enough to keep
+it busy. Match the accelerator to the work, or you pay accelerator prices for CPU-class
+throughput.
+
+The full narrative is in [`docs/writeup.md`](docs/writeup.md).
+
+---
+
+## How this run was actually executed
+
+The full end-to-end, for reproducibility. Everything ran from PowerShell on Windows;
+the instance was reached entirely through **SSM** (no SSH).
+
+```powershell
+# --- pre-flight ---
+aws sts get-caller-identity                         # confirm account / SSO
+.\scripts\check_quota.ps1                            # confirm G/VT vCPU quota = 4 (approved)
+winget install Amazon.SessionManagerPlugin           # SSM plugin (one time)
+
+# --- 1. bootstrap remote state (S3 + DynamoDB) ---
+cd terraform\bootstrap
+terraform init
+terraform apply -auto-approve                        # creates bucket + lock table
+cd ..
+
+# --- 2. init main config against the S3 backend ---
+terraform init "-backend-config=backend.hcl"
+
+# --- 3. plan, then 4. apply the GPU instance ---
+terraform plan
+terraform apply -auto-approve                        # billing starts (~$0.526/hr)
+
+# --- connect + benchmark, all via SSM send-command (no SSH) ---
+# wait for the instance to register with SSM:
+aws ssm describe-instance-information --region us-east-1 `
+  --filters "Key=InstanceIds,Values=<instance-id>"
+
+# clone the repo onto the box, check the GPU, run the benchmarks.
+# The Deep Learning AMI's PyTorch lives in a venv at /opt/pytorch/bin/python.
+aws ssm send-command --region us-east-1 --instance-ids <instance-id> `
+  --document-name AWS-RunShellScript --parameters file://scripts/ssm_run.json
+aws ssm get-command-invocation --region us-east-1 `
+  --command-id <cmd-id> --instance-id <instance-id>   # read the output
+
+# --- transfer results off the box ---
+# SSM command output is too small for binary PNGs, so the instance uploads results to S3
+# (a scoped s3:PutObject policy on the instance role), then we pull them down locally.
+aws ssm send-command --region us-east-1 --instance-ids <instance-id> `
+  --document-name AWS-RunShellScript --parameters file://scripts/ssm_upload.json
+aws s3 cp s3://<state-bucket>/benchmark-results/ results/ --recursive --region us-east-1
+
+# --- 5. tear it all down ---
+terraform destroy -auto-approve                      # stops billing, removes resources
+```
+
+A couple of real-world gotchas this run surfaced (and fixed):
+
+- **AMI name drift:** AWS renamed the Deep Learning AMI to `Deep Learning OSS Nvidia
+  Driver AMI GPU PyTorch ... (Ubuntu ...)`. The AMI lookup filter was updated to match.
+- **PyTorch interpreter:** on the DL AMI, PyTorch isn't the system `python3` — it's a venv
+  at `/opt/pytorch/bin/python`. SSM commands must call that explicitly.
+- **Binary file transfer:** SSM `send-command` output is size-limited, so charts are
+  ferried out via S3 rather than inline.
+
+The `scripts/ssm_*.json` files are the exact command payloads used, kept in the repo.
 
 ---
 

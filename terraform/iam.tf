@@ -36,3 +36,21 @@ resource "aws_iam_instance_profile" "ssm" {
   name = "${var.project_name}-ssm-profile"
   role = aws_iam_role.ssm.name
 }
+
+# Minimal, scoped permission for the instance to upload benchmark result files to a
+# prefix in the state bucket. This is only used to transfer charts/JSON off the box
+# (SSM command output is too small for binary files). Torn down with everything else.
+resource "aws_iam_role_policy" "results_upload" {
+  count = var.results_bucket == "" ? 0 : 1
+  name  = "${var.project_name}-results-upload"
+  role  = aws_iam_role.ssm.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject"]
+      Resource = "arn:aws:s3:::${var.results_bucket}/benchmark-results/*"
+    }]
+  })
+}

@@ -1,0 +1,11 @@
+{
+  "commands": [
+    "echo '--- conda envs ---'",
+    "ls /opt/conda/envs 2>/dev/null || echo no-opt-conda",
+    "ls /opt/pytorch 2>/dev/null || echo no-opt-pytorch",
+    "echo '--- search for torch ---'",
+    "for p in /opt/conda/envs/*/bin/python /opt/conda/bin/python /usr/local/bin/python3 /home/ubuntu/anaconda3/bin/python; do if [ -x \"$p\" ]; then echo -n \"$p -> \"; $p -c 'import torch,sys; print(torch.__version__, torch.cuda.is_available())' 2>/dev/null || echo 'no torch'; fi; done",
+    "echo '--- which python via login shell ---'",
+    "su - ubuntu -c 'which python; python -c \"import torch; print(torch.__version__, torch.cuda.is_available())\"' 2>&1 | tail -5"
+  ]
+}

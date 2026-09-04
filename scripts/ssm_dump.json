@@ -1,0 +1,6 @@
+{
+  "commands": [
+    "cd /home/ubuntu/ai-infra-gpu-lab/results",
+    "for f in matmul.png cnn_training.png speedup.png matmul.json cnn_training.json; do echo \"@@@FILE:$f\"; base64 -w0 \"$f\"; echo; done"
+  ]
+}

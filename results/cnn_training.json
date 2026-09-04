@@ -1,0 +1,30 @@
+{
+  "benchmark": "cnn_training",
+  "generated_at": "2026-09-04T22:16:46.092219+00:00",
+  "torch_version": "2.13.0+cu130",
+  "cuda_available": true,
+  "runs": [
+    {
+      "name": "cnn_training",
+      "device": "cpu",
+      "device_name": "x86_64",
+      "config": {
+        "batch_size": 64,
+        "image_size": 32,
+        "images_per_sec": 440.4
+      },
+      "seconds": 0.14531950456000003
+    },
+    {
+      "name": "cnn_training",
+      "device": "cuda",
+      "device_name": "Tesla T4",
+      "config": {
+        "batch_size": 64,
+        "image_size": 32,
+        "images_per_sec": 10958.8
+      },
+      "seconds": 0.00584007948000135
+    }
+  ]
+}

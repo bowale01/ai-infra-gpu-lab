@@ -1,0 +1,16 @@
+{
+  "commands": [
+    "set -e",
+    "cd /home/ubuntu/ai-infra-gpu-lab/benchmarks",
+    "PY=/opt/pytorch/bin/python",
+    "$PY -m pip install --quiet matplotlib 2>/dev/null || true",
+    "echo '=== matmul ==='",
+    "$PY matmul_benchmark.py",
+    "echo '=== cnn ==='",
+    "$PY cnn_benchmark.py",
+    "echo '=== plot ==='",
+    "$PY plot_results.py",
+    "echo '=== results dir ==='",
+    "ls -la ../results"
+  ]
+}

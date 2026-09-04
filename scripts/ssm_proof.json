@@ -1,0 +1,15 @@
+{
+  "commands": [
+    "echo '===== nvidia-smi ====='",
+    "nvidia-smi",
+    "echo ''",
+    "echo '===== PyTorch / CUDA ====='",
+    "/opt/pytorch/bin/python -c 'import torch; print(\"torch\", torch.__version__); print(\"cuda available:\", torch.cuda.is_available()); print(\"device:\", torch.cuda.get_device_name(0)); print(\"capability:\", torch.cuda.get_device_capability(0))'",
+    "echo ''",
+    "echo '===== instance identity (from inside the box) ====='",
+    "TOKEN=$(curl -s -X PUT 'http://169.254.169.254/latest/api/token' -H 'X-aws-ec2-metadata-token-ttl-seconds: 60')",
+    "echo -n 'instance-id:   '; curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/instance-id; echo",
+    "echo -n 'instance-type: '; curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/instance-type; echo",
+    "echo -n 'region/az:     '; curl -s -H \"X-aws-ec2-metadata-token: $TOKEN\" http://169.254.169.254/latest/meta-data/placement/availability-zone; echo"
+  ]
+}

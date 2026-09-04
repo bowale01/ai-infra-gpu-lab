@@ -34,10 +34,22 @@ venv/
 env/
 .ipynb_checkpoints/
 
-# ---- Benchmark results (keep committed ones out of accidental churn) ----
+# ---- Benchmark results ----
+# Ignore stray/local result files, but DO commit the real published charts + JSON
+# from the live Tesla T4 run so they render in the README on GitHub.
 results/*.json
 results/*.png
 !results/.gitkeep
+!results/matmul.png
+!results/cnn_training.png
+!results/speedup.png
+!results/matmul.json
+!results/cnn_training.json
+
+# ---- SSM run artifacts (throwaway command ids / raw dumps) ----
+scripts/dump_raw.txt
+scripts/dump_cmd.txt
+scripts/last_cmd.txt
 
 # ---- OS / editor ----
 .DS_Store
